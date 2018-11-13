@@ -17,20 +17,24 @@
 package io.spring.initializr.generator.language;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * An annotation.
  *
  * @author Andy Wilkinson
+ * @author Stephane Nicoll
  */
 public final class Annotation {
 
 	private final String name;
 
-	private final Map<String, AttributeValues> attributes;
+	private final Map<String, Attribute> attributes;
 
 	private Annotation(Builder builder) {
 		this.name = builder.name;
@@ -41,12 +45,20 @@ public final class Annotation {
 		return this.name;
 	}
 
-	public Map<String, AttributeValues> getAttributes() {
-		return this.attributes;
+	public Collection<Attribute> getAttributes() {
+		return Collections.unmodifiableCollection(this.attributes.values());
 	}
 
-	public static Builder name(String name) {
-		return new Builder(name);
+	public static Annotation name(String name) {
+		return name(name, null);
+	}
+
+	public static Annotation name(String name, Consumer<Builder> builder) {
+		Builder annotationBuilder = new Builder(name);
+		if (builder != null) {
+			builder.accept(annotationBuilder);
+		}
+		return new Annotation(annotationBuilder);
 	}
 
 	/**
@@ -56,35 +68,38 @@ public final class Annotation {
 
 		private final String name;
 
-		private final Map<String, AttributeValues> attributes = new LinkedHashMap<>();
+		private final Map<String, Attribute> attributes = new LinkedHashMap<>();
 
 		private Builder(String name) {
 			this.name = name;
 		}
 
 		public Builder attribute(String name, Class<?> type, String... values) {
-			this.attributes.put(name, new AttributeValues(type, values));
+			this.attributes.put(name, new Attribute(name, type, values));
 			return this;
-		}
-
-		public Annotation build() {
-			return new Annotation(this);
 		}
 
 	}
 
 	/**
-	 * Define the values of a particular attribute of an annotation.
+	 * Define an attribute of an annotation.
 	 */
-	public static final class AttributeValues {
+	public static final class Attribute {
+
+		private final String name;
 
 		private final Class<?> type;
 
 		private final List<String> values;
 
-		private AttributeValues(Class<?> type, String... values) {
+		private Attribute(String name, Class<?> type, String... values) {
+			this.name = name;
 			this.type = type;
 			this.values = Arrays.asList(values);
+		}
+
+		public String getName() {
+			return this.name;
 		}
 
 		public Class<?> getType() {

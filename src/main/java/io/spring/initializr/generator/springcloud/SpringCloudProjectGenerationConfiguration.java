@@ -36,8 +36,7 @@ public class SpringCloudProjectGenerationConfiguration {
 	@ConditionalOnDependency(groupId = "org.springframework.cloud", artifactId = "spring-cloud-config-server")
 	public MainApplicationTypeCustomizer<TypeDeclaration> enableConfigServerAnnotator() {
 		return (typeDeclaration) -> typeDeclaration.annotate(Annotation
-				.name("org.springframework.cloud.config.server.EnableConfigServer")
-				.build());
+				.name("org.springframework.cloud.config.server.EnableConfigServer"));
 	}
 
 }

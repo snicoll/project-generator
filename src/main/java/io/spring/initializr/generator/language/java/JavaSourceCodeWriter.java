@@ -157,29 +157,29 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 		writer.print(prefix + "@" + getUnqualifiedName(annotation.getName()));
 		if (!annotation.getAttributes().isEmpty()) {
 			writer.print("(");
-			writer.print(annotation.getAttributes().entrySet().stream()
-					.map((entry) -> entry.getKey() + " = "
-							+ annotationAttributes(entry.getValue()))
+			writer.print(annotation.getAttributes().stream()
+					.map((attribute) -> attribute.getName() + " = "
+							+ annotationAttribute(attribute))
 					.collect(Collectors.joining(", ")));
 			writer.print(")");
 		}
 		writer.println();
 	}
 
-	private String annotationAttributes(Annotation.AttributeValues attributeValues) {
-		List<String> values = attributeValues.getValues();
-		if (attributeValues.getType().equals(Class.class)) {
+	private String annotationAttribute(Annotation.Attribute attribute) {
+		List<String> values = attribute.getValues();
+		if (attribute.getType().equals(Class.class)) {
 			return formatValues(values,
 					(value) -> String.format("%s.class", getUnqualifiedName(value)));
 		}
-		if (attributeValues.getType().equals(Enum.class)) {
+		if (Enum.class.isAssignableFrom(attribute.getType())) {
 			return formatValues(values, (value) -> {
 				String enumValue = value.substring(value.lastIndexOf(".") + 1);
 				String enumClass = value.substring(0, value.lastIndexOf("."));
 				return String.format("%s.%s", getUnqualifiedName(enumClass), enumValue);
 			});
 		}
-		if (attributeValues.getType().equals(String.class)) {
+		if (attribute.getType().equals(String.class)) {
 			return formatValues(values, (value) -> String.format("\"%s\"", value));
 		}
 		return formatValues(values, (value) -> String.format("%s", value));
@@ -258,12 +258,12 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 	private Collection<String> determineImports(Annotation annotation) {
 		List<String> imports = new ArrayList<>();
 		imports.add(annotation.getName());
-		annotation.getAttributes().values().forEach((values) -> {
-			if (values.getType() == Class.class) {
-				imports.addAll(values.getValues());
+		annotation.getAttributes().forEach((attribute) -> {
+			if (attribute.getType() == Class.class) {
+				imports.addAll(attribute.getValues());
 			}
-			if (values.getType() == Enum.class) {
-				imports.addAll(values.getValues().stream()
+			if (Enum.class.isAssignableFrom(attribute.getType())) {
+				imports.addAll(attribute.getValues().stream()
 						.map((value) -> value.substring(0, value.lastIndexOf(".")))
 						.collect(Collectors.toList()));
 			}

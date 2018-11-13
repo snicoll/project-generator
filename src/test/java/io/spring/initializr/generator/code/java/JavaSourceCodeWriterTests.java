@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import io.spring.initializr.generator.language.Annotation;
@@ -81,8 +82,7 @@ public class JavaSourceCodeWriterTests {
 				.createCompilationUnit("com.example", "Test");
 		JavaTypeDeclaration test = compilationUnit.createTypeDeclaration("Test");
 		test.annotate(Annotation
-				.name("org.springframework.boot.autoconfigure.SpringBootApplication")
-				.build());
+				.name("org.springframework.boot.autoconfigure.SpringBootApplication"));
 		test.addMethodDeclaration(JavaMethodDeclaration.method("main")
 				.modifiers(Modifier.PUBLIC | Modifier.STATIC).returning("void")
 				.parameters(new Parameter("java.lang.String[]", "args"))
@@ -104,8 +104,8 @@ public class JavaSourceCodeWriterTests {
 	@Test
 	public void annotationWithSimpleStringAttribute() throws IOException {
 		List<String> lines = writeClassAnnotation(
-				Annotation.name("org.springframework.test.TestApplication")
-						.attribute("name", String.class, "test").build());
+				Annotation.name("org.springframework.test.TestApplication",
+						(builder) -> builder.attribute("name", String.class, "test")));
 		assertThat(lines).containsExactly("package com.example;", "",
 				"import org.springframework.test.TestApplication;", "",
 				"@TestApplication(name = \"test\")", "public class Test {", "", "}", "");
@@ -113,10 +113,10 @@ public class JavaSourceCodeWriterTests {
 
 	@Test
 	public void annotationWithSimpleEnumAttribute() throws IOException {
-		List<String> lines = writeClassAnnotation(Annotation
-				.name("org.springframework.test.TestApplication")
-				.attribute("unit", Enum.class, "java.time.temporal.ChronoUnit.SECONDS")
-				.build());
+		List<String> lines = writeClassAnnotation(
+				Annotation.name("org.springframework.test.TestApplication",
+						(builder) -> builder.attribute("unit", Enum.class,
+								"java.time.temporal.ChronoUnit.SECONDS")));
 		assertThat(lines).containsExactly("package com.example;", "",
 				"import org.springframework.test.TestApplication;",
 				"import java.time.temporal.ChronoUnit;", "",
@@ -126,14 +126,28 @@ public class JavaSourceCodeWriterTests {
 
 	@Test
 	public void annotationWithClassArrayAttribute() throws IOException {
-		List<String> lines = writeClassAnnotation(Annotation
-				.name("org.springframework.test.TestApplication")
-				.attribute("target", Class.class, "com.example.One", "com.example.Two")
-				.build());
+		List<String> lines = writeClassAnnotation(
+				Annotation.name("org.springframework.test.TestApplication",
+						(builder) -> builder.attribute("target", Class.class,
+								"com.example.One", "com.example.Two")));
 		assertThat(lines).containsExactly("package com.example;", "",
 				"import org.springframework.test.TestApplication;",
 				"import com.example.One;", "import com.example.Two;", "",
 				"@TestApplication(target = { One.class, Two.class })",
+				"public class Test {", "", "}", "");
+	}
+
+	@Test
+	public void annotationWithSeveralAttributes() throws IOException {
+		List<String> lines = writeClassAnnotation(Annotation.name(
+				"org.springframework.test.TestApplication",
+				(builder) -> builder.attribute("target", Class.class, "com.example.One")
+						.attribute("unit", ChronoUnit.class,
+								"java.time.temporal.ChronoUnit.NANOS")));
+		assertThat(lines).containsExactly("package com.example;", "",
+				"import org.springframework.test.TestApplication;",
+				"import com.example.One;", "import java.time.temporal.ChronoUnit;", "",
+				"@TestApplication(target = One.class, unit = ChronoUnit.NANOS)",
 				"public class Test {", "", "}", "");
 	}
 
