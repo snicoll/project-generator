@@ -159,14 +159,14 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 			writer.print("(");
 			writer.print(annotation.getAttributes().stream()
 					.map((attribute) -> attribute.getName() + " = "
-							+ annotationAttribute(attribute))
+							+ formatAnnotationAttribute(attribute))
 					.collect(Collectors.joining(", ")));
 			writer.print(")");
 		}
 		writer.println();
 	}
 
-	private String annotationAttribute(Annotation.Attribute attribute) {
+	private String formatAnnotationAttribute(Annotation.Attribute attribute) {
 		List<String> values = attribute.getValues();
 		if (attribute.getType().equals(Class.class)) {
 			return formatValues(values,
@@ -185,8 +185,7 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 		return formatValues(values, (value) -> String.format("%s", value));
 	}
 
-	private <T> String formatValues(List<String> values,
-			Function<String, String> formatter) {
+	private String formatValues(List<String> values, Function<String, String> formatter) {
 		String result = values.stream().map(formatter).collect(Collectors.joining(", "));
 		return (values.size() > 1) ? "{ " + result + " }" : result;
 	}
