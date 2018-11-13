@@ -121,8 +121,9 @@ public class KotlinSourceCodeWriterTests {
 		KotlinCompilationUnit compilationUnit = sourceCode
 				.createCompilationUnit("com.example", "Test");
 		KotlinTypeDeclaration test = compilationUnit.createTypeDeclaration("Test");
-		test.annotate(new Annotation(
-				"org.springframework.boot.autoconfigure.SpringBootApplication"));
+		test.annotate(Annotation
+				.name("org.springframework.boot.autoconfigure.SpringBootApplication")
+				.build());
 		compilationUnit.addTopLevelFunction(KotlinFunctionDeclaration.function("main")
 				.parameters(new Parameter("Array<String>", "args"))
 				.body(new KotlinExpressionStatement(new KotlinReifiedFunctionInvocation(
