@@ -16,8 +16,8 @@
 
 package io.spring.initializr.generator.language;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,19 +34,20 @@ public final class Annotation {
 
 	private final String name;
 
-	private final Map<String, Attribute> attributes;
+	private final List<Attribute> attributes;
 
 	private Annotation(Builder builder) {
 		this.name = builder.name;
-		this.attributes = new LinkedHashMap<>(builder.attributes);
+		this.attributes = Collections
+				.unmodifiableList(new ArrayList<>(builder.attributes.values()));
 	}
 
 	public String getName() {
 		return this.name;
 	}
 
-	public Collection<Attribute> getAttributes() {
-		return Collections.unmodifiableCollection(this.attributes.values());
+	public List<Attribute> getAttributes() {
+		return this.attributes;
 	}
 
 	public static Annotation name(String name) {
