@@ -21,8 +21,11 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
+import io.spring.initializr.generator.code.util.Imports;
 import io.spring.initializr.generator.language.Annotation;
 import io.spring.initializr.generator.language.Parameter;
 import io.spring.initializr.generator.language.java.JavaCompilationUnit;
@@ -94,9 +97,9 @@ public class JavaSourceCodeWriterTests {
 		assertThat(testSource).isFile();
 		List<String> lines = Files.readAllLines(testSource.toPath());
 		assertThat(lines).containsExactly("package com.example;", "",
+				"import org.springframework.boot.SpringApplication;",
 				"import org.springframework.boot.autoconfigure.SpringBootApplication;",
-				"import org.springframework.boot.SpringApplication;", "",
-				"@SpringBootApplication", "public class Test {", "",
+				"", "@SpringBootApplication", "public class Test {", "",
 				"    public static void main(String[] args) {",
 				"        SpringApplication.run(Test.class, args);", "    }", "", "}", "");
 	}
@@ -128,8 +131,8 @@ public class JavaSourceCodeWriterTests {
 						(builder) -> builder.attribute("unit", Enum.class,
 								"java.time.temporal.ChronoUnit.SECONDS")));
 		assertThat(lines).containsExactly("package com.example;", "",
-				"import org.springframework.test.TestApplication;",
-				"import java.time.temporal.ChronoUnit;", "",
+				"import java.time.temporal.ChronoUnit;",
+				"import org.springframework.test.TestApplication;", "",
 				"@TestApplication(unit = ChronoUnit.SECONDS)", "public class Test {", "",
 				"}", "");
 	}
@@ -141,8 +144,8 @@ public class JavaSourceCodeWriterTests {
 						(builder) -> builder.attribute("target", Class.class,
 								"com.example.One", "com.example.Two")));
 		assertThat(lines).containsExactly("package com.example;", "",
-				"import org.springframework.test.TestApplication;",
-				"import com.example.One;", "import com.example.Two;", "",
+				"import com.example.One;", "import com.example.Two;",
+				"import org.springframework.test.TestApplication;", "",
 				"@TestApplication(target = { One.class, Two.class })",
 				"public class Test {", "", "}", "");
 	}
@@ -155,8 +158,8 @@ public class JavaSourceCodeWriterTests {
 						.attribute("unit", ChronoUnit.class,
 								"java.time.temporal.ChronoUnit.NANOS")));
 		assertThat(lines).containsExactly("package com.example;", "",
-				"import org.springframework.test.TestApplication;",
-				"import com.example.One;", "import java.time.temporal.ChronoUnit;", "",
+				"import com.example.One;", "import java.time.temporal.ChronoUnit;",
+				"import org.springframework.test.TestApplication;", "",
 				"@TestApplication(target = One.class, unit = ChronoUnit.NANOS)",
 				"public class Test {", "", "}", "");
 	}
@@ -191,6 +194,43 @@ public class JavaSourceCodeWriterTests {
 				"import com.example.test.TestAnnotation;", "", "public class Test {", "",
 				"    @TestAnnotation", "    public void something() {", "    }", "", "}",
 				"");
+	}
+
+	@Test
+	public void importsWithCustomImportGroupsFactory() throws IOException {
+		this.writer.setImportGroupsFactory((allImports) -> {
+			Imports imports = Imports.of(allImports);
+			Set<String> javaImports = imports
+					.extract((candidate) -> candidate.startsWith("java."));
+			Set<String> javaxImports = imports
+					.extract((candidate) -> candidate.startsWith("javax."));
+			Set<String> springFrameworkImports = imports
+					.extract((candidate) -> candidate.startsWith("org.springframework."));
+			Set<String> otherImports = imports.extract((candidate) -> true);
+			return Arrays.asList(javaImports, javaxImports, springFrameworkImports,
+					otherImports);
+		});
+		JavaSourceCode sourceCode = new JavaSourceCode();
+		JavaCompilationUnit compilationUnit = sourceCode
+				.createCompilationUnit("com.example", "Test");
+		JavaTypeDeclaration test = compilationUnit.createTypeDeclaration("Test");
+		JavaMethodDeclaration method = JavaMethodDeclaration.method("something")
+				.returning("java.util.Timestamp")
+				.parameters(new Parameter("java.util.Date", "date")).body();
+		method.annotate(Annotation.name("org.springframework.B"));
+		method.annotate(Annotation.name("com.example.test.TestAnnotation"));
+		method.annotate(Annotation.name("org.springframework.A"));
+		test.addMethodDeclaration(method);
+		this.writer.writeTo(this.temp.getRoot(), sourceCode);
+		File testSource = new File(this.temp.getRoot(), "com/example/Test.java");
+		assertThat(testSource).isFile();
+		List<String> lines = Files.readAllLines(testSource.toPath());
+		assertThat(lines).containsExactly("package com.example;", "",
+				"import java.util.Date;", "import java.util.Timestamp;", "",
+				"import org.springframework.A;", "import org.springframework.B;", "",
+				"import com.example.test.TestAnnotation;", "", "public class Test {", "",
+				"    @B", "    @TestAnnotation", "    @A",
+				"    public Timestamp something(Date date) {", "    }", "", "}", "");
 	}
 
 }

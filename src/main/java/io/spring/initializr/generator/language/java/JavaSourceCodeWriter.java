@@ -35,6 +35,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.spring.initializr.generator.code.util.Imports;
 import io.spring.initializr.generator.language.Annotatable;
 import io.spring.initializr.generator.language.Annotation;
 import io.spring.initializr.generator.language.Parameter;
@@ -64,6 +65,21 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 		METHOD_MODIFIERS = methodModifiers;
 	}
 
+	private Function<Set<String>, List<Set<String>>> importGroupsFactory;
+	public void setImportGroupsFactory(
+			Function<Set<String>, List<Set<String>>> importGroupsFactory) {
+		this.importGroupsFactory = importGroupsFactory;
+	}
+
+	private Function<Set<String>, List<Set<String>>> defaultImportGroupsFactory() {
+		return (allImports) -> {
+			Set<String> sortedImports = Imports.of(allImports)
+					.extract((candidate) -> true);
+			return (sortedImports.isEmpty()) ? Collections.emptyList()
+					: Collections.singletonList(sortedImports);
+		};
+	}
+
 	@Override
 	public void writeTo(File directory, JavaSourceCode sourceCode) throws IOException {
 		if (!directory.isDirectory()) {
@@ -84,12 +100,16 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 		try (PrintWriter writer = new PrintWriter(new FileOutputStream(output))) {
 			writer.println("package " + compilationUnit.getPackageName() + ";");
 			writer.println();
-			Set<String> imports = determineImports(compilationUnit);
-			if (!imports.isEmpty()) {
-				for (String importedType : imports) {
-					writer.println("import " + importedType + ";");
+			List<Set<String>> importGroups = determineImports(compilationUnit);
+			if (!importGroups.isEmpty()) {
+				for (Set<String> importGroup : importGroups) {
+					if (!importGroup.isEmpty()) {
+						for (String importedType : importGroup) {
+							writer.println("import " + importedType + ";");
+						}
+						writer.println();
+					}
 				}
-				writer.println();
 			}
 			for (JavaTypeDeclaration type : compilationUnit.getTypeDeclarations()) {
 				writeAnnotations(writer, type);
@@ -230,7 +250,7 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 		return new File(directory, packageName.replace('.', '/'));
 	}
 
-	private Set<String> determineImports(JavaCompilationUnit compilationUnit) {
+	private List<Set<String>> determineImports(JavaCompilationUnit compilationUnit) {
 		Set<String> imports = new LinkedHashSet<>();
 		for (JavaTypeDeclaration typeDeclaration : compilationUnit
 				.getTypeDeclarations()) {
@@ -259,7 +279,9 @@ public class JavaSourceCodeWriter implements SourceCodeWriter<JavaSourceCode> {
 								.singleton(methodInvocation.getTarget())));
 			}
 		}
-		return imports;
+		Function<Set<String>, List<Set<String>>> factory = (this.importGroupsFactory != null)
+				? this.importGroupsFactory : defaultImportGroupsFactory();
+		return factory.apply(imports);
 	}
 
 	private Collection<String> determineImports(Annotation annotation) {
